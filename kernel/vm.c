@@ -337,8 +337,10 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz, int cow_flag, uint64 va
       panic("uvmcopy: pte should exist");
     if ((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+
     if (cow_flag && (*pte & PTE_COW))
     {
       // printf("uvmcopy: i = %p | pte = %p\n", i, *pte);
@@ -346,7 +348,6 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz, int cow_flag, uint64 va
         panic("uvmcopy: out of memory");
       memmove(mem, (char *)pa, PGSIZE);
       // printf("here\n");
-      // uvmunmap(old, i, 1, 0);
 
       if (mappages(new, i, PGSIZE, (uint64)mem, (flags | PTE_W) & ~PTE_COW) != 0)
       {
@@ -359,7 +360,12 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz, int cow_flag, uint64 va
     else if(cow_flag == 0)
     {
 
-      if (mappages(new, i, PGSIZE, (uint64)pa, (flags & ~PTE_W) | PTE_COW) != 0)
+      *pte = *pte | PTE_COW;
+      *pte = *pte & ~PTE_W;
+      pa = PTE2PA(*pte);
+      flags = PTE_FLAGS(*pte);
+
+      if (mappages(new, i, PGSIZE, (uint64)pa, flags) != 0)
         goto err;
 
       count_reference_increase(pa);
