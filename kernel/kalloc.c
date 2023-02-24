@@ -95,3 +95,22 @@ kalloc(void)
   count_of_references[(uint64)r / PGSIZE] = 1;
   return (void *)r;
 }
+
+
+void count_reference_increase(uint64 pa) {
+  if(count_of_references[pa / PGSIZE] == 0)
+    panic("Invalid reference count\n");
+  acquire(&kmem.lock);
+  count_of_references[pa / PGSIZE]++;
+  release(&kmem.lock);
+}
+
+void count_reference_decrease(uint64 pa) {
+  if(count_of_references[pa / PGSIZE] == 0)
+    panic("Invalid reference count\n");
+  acquire(&kmem.lock);
+  count_of_references[pa / PGSIZE]--;
+  release(&kmem.lock);
+  if(count_of_references[pa / PGSIZE] == 0)
+    kfree((void *)pa);
+}

@@ -68,7 +68,13 @@ void usertrap(void)
   }
   else if (r_scause() == 0xf)
   {
-    uvmcopy(myproc()->pagetable, myproc()->pagetable, myproc()->sz, 1);
+    uint64 va = PGROUNDDOWN(r_stval());
+    if (va >= MAXVA)
+      exit(-1);
+    // printf("from trap.c\n");  
+    if(uvmcopy(p->pagetable, p->pagetable, PGSIZE, 1, va) < 0) {
+      p->killed = 1;
+    }
   }
   // else if (r_scause() == 0xc)
   // {
